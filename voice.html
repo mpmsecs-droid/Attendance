@@ -1,0 +1,187 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Voice PRN Recognition Test</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            text-align: center;
+            padding: 50px 15px;
+        }
+
+        .card {
+            background: white;
+            max-width: 500px;
+            margin: auto;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px #0001;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+        }
+
+        #result {
+            font-size: 26px;
+            font-weight: bold;
+            color: #1e40af;
+            margin: 25px;
+        }
+
+        #status {
+            color: #64748b;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="card">
+
+    <h1>Voice PRN Recognition</h1>
+
+    <p>Click the button and speak your PRN digit by digit.</p>
+
+    <button id="startBtn" onclick="startListening()">
+        🎙️ Start Speaking
+    </button>
+
+    <button onclick="resetResult()">
+        Reset
+    </button>
+
+    <h3>Recognized PRN:</h3>
+
+    <div id="result">---</div>
+
+    <p id="transcript"></p>
+
+    <p id="status">Ready to listen</p>
+
+</div>
+
+<script>
+
+const SpeechRecognition =
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
+let recognition;
+
+function normalizePRN(text) {
+
+    const digitWords = {
+        "zero": "0",
+        "oh": "0",
+        "one": "1",
+        "two": "2",
+        "three": "3",
+        "four": "4",
+        "five": "5",
+        "six": "6",
+        "seven": "7",
+        "eight": "8",
+        "nine": "9"
+    };
+
+    const words = text.toLowerCase().match(/[a-z]+|\d+/g) || [];
+
+    let prn = "";
+
+    for (const word of words) {
+        if (/^\d+$/.test(word)) {
+            prn += word;
+        } else if (digitWords[word] !== undefined) {
+            prn += digitWords[word];
+        } else {
+            return "";
+        }
+    }
+
+    return prn;
+}
+
+function startListening() {
+
+    if (!SpeechRecognition) {
+        document.getElementById("status").textContent =
+            "Speech recognition is not supported. Please use Google Chrome.";
+        return;
+    }
+
+    recognition = new SpeechRecognition();
+
+    recognition.lang = "en-IN";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 3;
+
+    document.getElementById("status").textContent =
+        "Listening... Speak your PRN digit by digit.";
+
+    document.getElementById("startBtn").disabled = true;
+
+    recognition.onresult = function(event) {
+
+        const results = event.results[0];
+
+        let recognizedText = "";
+
+        for (const alternative of results) {
+            recognizedText = alternative.transcript;
+            break;
+        }
+
+        const prn = normalizePRN(recognizedText);
+
+        document.getElementById("transcript").textContent =
+            "Heard: " + recognizedText;
+
+        document.getElementById("result").textContent =
+            prn || "Could not identify digits";
+
+        document.getElementById("status").textContent =
+            prn ? "Recognition complete. Verify the PRN." :
+            "Please try again and speak one digit at a time.";
+    };
+
+    recognition.onerror = function(event) {
+        document.getElementById("status").textContent =
+            "Recognition error: " + event.error;
+    };
+
+    recognition.onend = function() {
+        document.getElementById("startBtn").disabled = false;
+    };
+
+    try {
+        recognition.start();
+    } catch (error) {
+        document.getElementById("status").textContent =
+            "Could not start microphone. Please try again.";
+        document.getElementById("startBtn").disabled = false;
+    }
+}
+
+function resetResult() {
+    document.getElementById("result").textContent = "---";
+    document.getElementById("transcript").textContent = "";
+    document.getElementById("status").textContent = "Ready to listen";
+}
+
+</script>
+
+</body>
+</html>
+
